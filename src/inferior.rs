@@ -234,6 +234,13 @@ impl Inferior {
         self.wait(None)
     }
 
+    /// Executes a single step in the debugging process.
+    ///
+    /// # param
+    /// - `breakpoints` - A reference to a `HashMap` containing the addresses of breakpoints.
+    ///
+    /// # return
+    /// A `Result` indicating the status of the operation or an error from the `nix` library.
     ///
     pub fn single_step(&mut self, breakpoints: &HashMap<usize, u8>) -> Result<Status, nix::Error> {
         let mut regs = ptrace::getregs(self.pid())?;

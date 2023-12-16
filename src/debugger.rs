@@ -229,6 +229,32 @@ impl Debugger {
                     }
                 }
 
+                //
+                DebuggerCommand::Step               => {
+                    if self.inferior.is_none() {
+                        println!("Erro: you can not use step when there is no process running");
+                    } else {
+                        match self.inferior.as_mut().unwrap().single_step(&self.breakpoints).unwrap() {
+                            Status::Exited(exit_code)    => {
+                                println!("Chlid exited (status {})", exit_code);
+                                self.inferior = None;
+                            }
+                            Status::Signaled(signal)     => {
+                                println!("Child exited due to signal {}", signal);
+                                self.inferior = None;
+                            }
+                            Status::Stopped(signal, rip) => {
+                                println!("Child stopped (signal {})", signal);
+                                let _line = self.debug_data.get_line_from_addr(rip);
+                                let _func = self.debug_data.get_function_from_addr(rip);
+                                if _line.is_some() && _func.is_some(){
+                                    println!("Stopped at {} ({})", _func.unwrap(), _line.unwrap());
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // print backtrace of this process , untill back to main function
                 DebuggerCommand::Backtrace          => {
                     if self.inferior.is_none() {

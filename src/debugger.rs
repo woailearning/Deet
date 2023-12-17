@@ -168,14 +168,13 @@ impl Debugger {
 
                 // Determine whether inferior exists. If it exists, kill it and then 
                 // create a new inferior and execute it directly.
-                DebuggerCommand::Run(args)          => {
+                DebuggerCommand::Run(args)             => {
                     if self.inferior.is_some() {
                         // there is already a inferior running
                         // if it has not exited, kill it first
                         self.inferior.as_mut().unwrap().kill();
                         self.inferior = None;
                     }
-
                     if let Some(inferior) = Inferior::new(&self.target, &args, &mut self.breakpoints) {
                         // Crate the inferior
                         self.inferior = Some(inferior);
@@ -203,8 +202,9 @@ impl Debugger {
                     }
                 }
 
-                // 
-                DebuggerCommand::Continue           => {
+                // call continues_run from inferior ;
+                // and wait for status changing of child .
+                DebuggerCommand::Continue              => {
                     if self.inferior.is_none() {
                        println!("Error: you can not use continue when there is no process running!");
                     } else {
@@ -229,8 +229,10 @@ impl Debugger {
                     }
                 }
 
-                //
-                DebuggerCommand::Step               => {
+                // Use the ptracer::step() function to execute 
+                // one step downward from the current rip then 
+                // and observe the state changes of the child process
+                DebuggerCommand::Step                  => {
                     if self.inferior.is_none() {
                         println!("Erro: you can not use step when there is no process running");
                     } else {
@@ -256,7 +258,7 @@ impl Debugger {
                 }
 
                 // print backtrace of this process , untill back to main function
-                DebuggerCommand::Backtrace          => {
+                DebuggerCommand::Backtrace             => {
                     if self.inferior.is_none() {
                         println!("Erro: you can not use backtrace when there is no process running");
                     } else {

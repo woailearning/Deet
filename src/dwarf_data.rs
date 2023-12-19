@@ -36,6 +36,11 @@ impl DwarfData {
         let object = object::File::parse(&*mmap)
             .or_else(|e| Err(gimli_wrapper::Error::ObjectError(e.to_string())))?;
         let endian = if object.is_little_endian() {
-        }
+            gimli::RunTimeEndian::Little
+        } else {
+            gimli::RunTimeEndian::Big
+        };
+        Ok(DwarfData {
+        })
     }
 }

@@ -260,7 +260,6 @@ impl Inferior {
         self.wait(None)
     }
 
-
     /// # brief
     /// This function uses the `ptrace` library to retrieve the register state of the current process
     /// and then loops through the function call stack, printing the source code line and 

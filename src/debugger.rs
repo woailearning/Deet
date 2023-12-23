@@ -2,8 +2,7 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::collections::HashMap;
 
-use crate::inferior::Status;
-use crate::inferior::Inferior;
+use crate::inferior::{Inferior,Status};
 use crate::debugger_command::DebuggerCommand;
 use crate::dwarf_data::{DwarfData, Error as DwarfError};
 
@@ -35,11 +34,11 @@ impl Debugger {
     pub fn new(target: &str) -> Self {
         let debug_data = match DwarfData::from_file(target) {
             Ok(val) => val,
-            Err(DwarfData::ErrorOpeningFile) => {
+            Err(DwarfError::ErrorOpeningFile) => {
                 println!("Could not open file {}", target);
                 std::process::exit(1);
             }
-            Err(DwarfData::DwarfFormatError(err)) => {
+            Err(DwarfError::DwarfFormatError(err)) => {
                 println!("Could not debugging system from {}: {:?}", target, err);
                 std::process::exit(1);
             }

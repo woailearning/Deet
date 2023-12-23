@@ -16,12 +16,7 @@ impl From<gimli_wrapper::Error> for Error {
     }
 }
 
-pub struct DwarfData {
-    files: Vec<File>,
-    add2line: Context<addr2line::gimli::EndianRcSlice<addr2line::gimli::RunTimeEndian>>,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Location {
     Address(usize),
     FramePointerOffset(isize),
@@ -30,7 +25,8 @@ pub enum Location {
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            fmt::Display::fmt(self, f)
+            Location::Address(addr) => write!(f, "Address({:#x})", addr),
+            Location::FramePointerOffset(offset) => write!(f, "FramePointerOffset({})", offset),
         }
     }
 }
@@ -64,7 +60,7 @@ pub struct Variable {
 
 #[derive(Debug, Default, Clone)]
 pub struct Function {
-    pub name: String`,
+    pub name: String,
     pub address: usize,
     pub text_length: usize,
     pub line_number: usize,
@@ -92,6 +88,11 @@ pub struct File {
     pub lines: Vec<Line>,
 }
 
+pub struct DwarfData {
+    files: Vec<File>,
+    addr2line: Context<addr2line::gimli::EndianRcSlice<addr2line::gimli::RunTimeEndian>>,
+}
+
 impl DwarfData {
 
     /// # Brief
@@ -113,7 +114,7 @@ impl DwarfData {
     pub fn from_file(path: &str) -> Result<Self, Error> {
         let file = fs::File::open(path).or(Err(Error::ErrorOpeningFile))?;
         let mmap = unsafe { 
-            memmap::Mmap::map(&files).or(Err(Error::ErrorOpeningFile))?
+            memmap::Mmap::map(&file).or(Err(Error::ErrorOpeningFile))?
         };
         let object = object::File::parse(&*mmap)
             .or_else(|e| Err(gimli_wrapper::Error::ObjectError(e.to_string())))?;
@@ -169,18 +170,20 @@ impl DwarfData {
     #[allow(dead_code)]
     pub fn get_addr_for_function(&self, file: Option<&str>, func_name: &str) -> Option<usize> {
         match file {
-            Some(filename) => {
+            Some(filename) => Some(
                 self.get_target_file(filename)?
                     .functions
                     .iter()
                     .find(|func| func.name == func_name)?
                     .address,
-            },
+            ),
             None => {
                 for file in &self.files {
-                    if let Some(func) = file.functions.iter().find(|func| func.name == func_name) 
+                    if let Some(func) = file.functions.iter().find(|func| func.name == func_name) {
                         return Some(func.address);
+                    }
                 }
+                None
             },
         }
     }
@@ -212,7 +215,7 @@ impl DwarfData {
 
     #[allow(dead_code)]
     pub fn print(&self) {
-        for file in self.files {
+        for file in &self.files {
             println!("------");
             println!("{}", file.name);
             println!("------");
@@ -220,7 +223,7 @@ impl DwarfData {
             println!("Global variables:");
             for var in &file.global_variables {
                 println!(
-                    "   * Variable: {} ({}, located at {:#x}, {} bytes long)",
+                    "   * Variable: {} ({}, located at {}, {} bytes long)",
                     var.name, var.entity_type.name, var.location, var.line_number
                 );
             }
@@ -228,12 +231,12 @@ impl DwarfData {
             println!("Functions:");
             for func in &file.functions {
                 println!(
-                    "   * {} (declared on line {}, located at {:#x}, {} bytes long)"
+                    "   * {} (declared on line {}, located at {:#x}, {} bytes long)",
                     func.name, func.line_number, func.address, func.text_length,
                 );
                 for var in &func.variables {
                     println!(
-                    "   * Variable: {} ({}, located at {:#x}, {} bytes long)",
+                    "   * Variable: {} ({}, located at {}, {} bytes long)",
                         var.name, var.entity_type.name, var.location, var.line_number
                     );
                 }

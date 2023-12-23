@@ -41,6 +41,16 @@ impl fmt::Debug for Location {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Type {
+    pub name: String,
+    pub size: usize,
+}
+
+impl Type {
+    pub fn 
+}
+
 // For variables and formal parameters
 #[derive(Debug, Clone)]
 pub struct Variable {
@@ -98,7 +108,7 @@ impl DwarfData {
     /// * `Result<DwarfData, Error>` - A `Result` indicating success (`Ok`) with the created `DwarfData` object,
     ///   or an error (`Err`) if there was a problem opening the file or parsing the debug information.
     ///
-    pub fn from_file(path: &str}) -> Result<Self, Error> {
+    pub fn from_file(path: &str) -> Result<Self, Error> {
         let file = fs::File::open(path).or(Err(Error::ErrorOpeningFile))?;
         let mmap = unsafe { 
             memmap::Mmap::map(&files).or(Err(Error::ErrorOpeningFile))?
@@ -174,6 +184,7 @@ impl DwarfData {
     }
 
 }
+
 impl fmt::Debug for DwarfData {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "DwarfData {{files: {:?}}}", self.files)

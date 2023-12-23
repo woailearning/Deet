@@ -212,6 +212,41 @@ impl DwarfData {
 
     #[allow(dead_code)]
     pub fn print(&self) {
+        for file in self.files {
+            println!("------");
+            println!("{}", file.name);
+            println!("------");
+
+            println!("Global variables:");
+            for var in &file.global_variables {
+                println!(
+                    "   * Variable: {} ({}, located at {:#x}, {} bytes long)",
+                    var.name, var.entity_type.name, var.location, var.line_number
+                );
+            }
+
+            println!("Functions:");
+            for func in &file.functions {
+                println!(
+                    "   * {} (declared on line {}, located at {:#x}, {} bytes long)"
+                    func.name, func.line_number, func.address, func.text_length,
+                );
+                for var in &func.variables {
+                    println!(
+                    "   * Variable: {} ({}, located at {:#x}, {} bytes long)",
+                        var.name, var.entity_type.name, var.location, var.line_number
+                    );
+                }
+            }
+
+            println!("Line numbers:");
+            for line in &file.lines {
+                println!(
+                    "   * {} (at {:#x})",
+                    line.number, line.address
+                );
+            }
+        }
     }
 }
 

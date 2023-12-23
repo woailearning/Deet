@@ -48,7 +48,9 @@ pub struct Type {
 }
 
 impl Type {
-    pub fn 
+    pub fn new(name: String, size: usize) -> Self {
+        Type {name, size,}
+    }
 }
 
 // For variables and formal parameters
@@ -183,6 +185,34 @@ impl DwarfData {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn get_line_from_addr(&self, curr_addr: usize) -> Option<Line> {
+        let location = self
+            .addr2line
+            .find_location(curr_addr.try_into().unwrap())
+            .ok()??;
+        Some( Line{
+            file: location.file?.to_string(),
+            number: location.line?.try_into().unwrap(),
+            address: curr_addr,
+        })
+    }
+
+
+    ///#[allow(dead_code)]
+    pub fn get_function_from_addr(&self, curr_addr: usize) -> Option<String> {
+        let frame = self
+            .addr2line
+            .find_frames(curr_addr.try_into().unwrap())
+            .ok()?
+            .next()
+            .ok()??;
+        Some( frame.function?.raw_name().ok()?.to_string() )
+    }
+
+    #[allow(dead_code)]
+    pub fn print(&self) {
+    }
 }
 
 impl fmt::Debug for DwarfData {

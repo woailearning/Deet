@@ -210,7 +210,15 @@ impl DwarfData {
         }
     }
 
+    /// Retrieves the source code line information corresponding to a memory address.
     /// 
+    /// # Param
+    /// 
+    /// * `curr_addr`: The memory address.
+    /// 
+    /// # Returns
+    /// 
+    /// If the corresponding source code line is found, the information of that line is returned. Otherwise, `None` is returned.
     #[allow(dead_code)]
     pub fn get_line_from_addr(&self, curr_addr: usize) -> Option<Line> {
         let location = self
@@ -224,7 +232,15 @@ impl DwarfData {
         })
     }
 
+    /// Retrieves the function name corresponding to a memory address.
     /// 
+    /// # Parameters
+    /// 
+    /// * `curr_addr`: The memory address.
+    /// 
+    /// # Returns
+    /// 
+    /// If the corresponding function is found, the name of that function is returned. Otherwise, `None` is returned.
     #[allow(dead_code)]
     pub fn get_function_from_addr(&self, curr_addr: usize) -> Option<String> {
         let frame = self
@@ -236,7 +252,31 @@ impl DwarfData {
         Some( frame.function?.raw_name().ok()?.to_string() )
     }
 
-    /// 
+    /// Prints the details of the DWARF data.
+    ///
+    /// This function iterates over each file in the DWARF data and prints its name, global variables, functions, and line numbers.
+    /// For each global variable and function variable, it prints the name, type, location, and line number.
+    /// For each function, it prints the name, declaration line number, memory address, and text length.
+    /// For each line number, it prints the line number and its corresponding memory address.
+    ///
+    /// # Example Output
+    ///
+    /// ```
+    /// ------
+    /// filename.rs
+    /// ------
+    /// Global variables:
+    ///    * Variable: var1 (type1, located at location1, line_number1 bytes long)
+    /// Functions:
+    ///    * func1 (declared on line line_number2, located at 0xaddress1, text_length1 bytes long)
+    ///    * Variable: var2 (type2, located at location2, line_number3 bytes long)
+    /// Line numbers:
+    ///    * line_number4 (at 0xaddress2)
+    /// ```plaintext
+    ///
+    /// # Note
+    ///
+    /// This function is primarily used for debugging and understanding the structure of the DWARF data.
     #[allow(dead_code)]
     pub fn print(&self) {
         for file in &self.files {

@@ -1,8 +1,9 @@
-use crate::gimli_wrapper;
 use addr2line::Context;
 use object::Object;
 use std::convert::TryInto;
 use std::{fmt, fs};
+
+use crate::gimli_wrapper;
 
 #[derive(Debug)]
 pub enum Error {
@@ -152,6 +153,16 @@ impl DwarfData {
         })
     }
 
+    /// Retrieves the memory address corresponding to a specified file and line number.
+    /// 
+    /// # Param
+    /// 
+    /// * `file`: Optional filename. If `None`, the first file is selected by default.
+    /// * `line_number`: The line number in the source code.
+    /// 
+    /// # Returns
+    /// 
+    /// If the corresponding line is found, the memory address of that line is returned. Otherwise, `None` is returned.
     #[allow(dead_code)]
     pub fn get_addr_for_line(&self, file: Option<&str>, line_number: usize) -> Option<usize> {
         let target_file = match file {
@@ -167,6 +178,17 @@ impl DwarfData {
             )
     }
 
+    /// 
+    /// Retrieves the memory address corresponding to a specified file and function name.
+    /// 
+    /// # Param
+    /// 
+    /// * `file`: Optional filename. If `None`, the function is searched for in all files.
+    /// * `func_name`: The name of the function.
+    /// 
+    /// # Returns
+    /// 
+    /// If the corresponding function is found, the memory address of that function is returned. Otherwise, `None` is returned.
     #[allow(dead_code)]
     pub fn get_addr_for_function(&self, file: Option<&str>, func_name: &str) -> Option<usize> {
         match file {
@@ -188,6 +210,7 @@ impl DwarfData {
         }
     }
 
+    /// 
     #[allow(dead_code)]
     pub fn get_line_from_addr(&self, curr_addr: usize) -> Option<Line> {
         let location = self
@@ -201,8 +224,8 @@ impl DwarfData {
         })
     }
 
-
-    ///#[allow(dead_code)]
+    /// 
+    #[allow(dead_code)]
     pub fn get_function_from_addr(&self, curr_addr: usize) -> Option<String> {
         let frame = self
             .addr2line
@@ -213,6 +236,7 @@ impl DwarfData {
         Some( frame.function?.raw_name().ok()?.to_string() )
     }
 
+    /// 
     #[allow(dead_code)]
     pub fn print(&self) {
         for file in &self.files {

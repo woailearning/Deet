@@ -10,11 +10,12 @@ use gimli::{UnitOffset, UnitSectionOffset};
 use object::Object;
 use std::borrow;
 //use std::io::{BufWriter, Write};
-use crate::dwarf_data::{File, Function, Line, Location, Type, Variable};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::Write;
 use std::{io, path};
+
+use crate::dwarf_data::{File, Function, Line, Location, Type, Variable};
 
 pub fn load_file(object: &object::File, endian: gimli::RunTimeEndian) -> Result<Vec<File>, Error> {
     // Load a section and return as `Cow<[u8]>`.

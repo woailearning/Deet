@@ -284,32 +284,32 @@ impl DwarfData {
             println!("{}", file.name);
             println!("------");
 
-            println!("Global variables:");
+        println!("\x1b[34m| - - - - Global variables- - - - : |\x1b[0m");
             for var in &file.global_variables {
                 println!(
-                    "   * Variable: {} ({}, located at {}, {} bytes long)",
+                    "| Variable: {:<20} | Type: {:<8} | Location: {:<10} | Line: {:<5} |",
                     var.name, var.entity_type.name, var.location, var.line_number
                 );
             }
 
-            println!("Functions:");
+            println!("\x1b[34m| - - - - Functions- - - - : |\x1b[0m");
             for func in &file.functions {
                 println!(
-                    "   * {} (declared on line {}, located at {:#x}, {} bytes long)",
+                    "| Function: {:<17} | Line: {:<8} | Address: {:<24x} | Length: {:<6} |",
                     func.name, func.line_number, func.address, func.text_length,
                 );
                 for var in &func.variables {
                     println!(
-                    "   * Variable: {} ({}, located at {}, {} bytes long)",
+                    "| Variable: {:<17} | Type: {:<8} | Location: {:<20} | Line: {:<8} |",
                         var.name, var.entity_type.name, var.location, var.line_number
                     );
                 }
             }
 
-            println!("Line numbers:");
+            println!("\x1b[34m| - - - - Line numbers- - - - : |\x1b[0m");
             for line in &file.lines {
                 println!(
-                    "   * {} (at {:#x})",
+                    "| Line: {:<5} | Address: {:<5x} |",
                     line.number, line.address
                 );
             }

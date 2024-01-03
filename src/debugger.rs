@@ -19,6 +19,8 @@ pub struct Debugger {
     debug_data: DwarfData,
     /// The breakpoints set in the target program.
     breakpoints: HashMap<usize, u8>,
+    /// The softirq for step over
+    step_over_points: HashMap<usize, u8>,
 }
 
 impl Debugger {
@@ -52,6 +54,7 @@ impl Debugger {
         let _ = readline.load_history(&history_path);
 
         let breakpoints = HashMap::new();
+        let step_over_points = HashMap::new();
         Debugger {
             target: target.to_string(),
             history_path,
@@ -59,6 +62,7 @@ impl Debugger {
             inferior: None,
             debug_data,
             breakpoints,
+            step_over_points,
         }
     }
 
@@ -235,7 +239,7 @@ impl Debugger {
                     if self.inferior.is_none() {
                         println!("Error: you can not use step when there is no process running");
                     } else {
-                        match self.inferior.as_mut().unwrap().step_over(&self.breakpoints, None, &self.debug_data).unwrap() {
+                        match self.inferior.as_mut().unwrap().step_over(&self.breakpoints, &mut self.step_over_points, None, &self.debug_data).unwrap() {
                             Status::Exited(exit_code)    => {
                                 println!("Chlid exited (status {})", exit_code);
                                 self.inferior = None;

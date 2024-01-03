@@ -247,7 +247,13 @@ impl Inferior {
     /// # return
     /// A `Result` indicating the status of the operation or an error from the `nix` library.
     ///
-    pub fn step_over(&mut self, breakpoints: &HashMap<usize, u8>, signal: Option<signal::Signal>, dwarf_data: &DwarfData) -> Result<Status, nix::Error> {
+    pub fn step_over(
+        &mut self, 
+        breakpoints: &HashMap<usize, u8>, 
+        step_points: &mut HashMap<usize, u8>,
+        signal: Option<signal::Signal>, 
+        dwarf_data: &DwarfData
+    ) -> Result<Status, nix::Error> {
         let mut regs = ptrace::getregs(self.pid())?;
         let rip = regs.rip as usize;
         // check if inferior stopped at a breakpoint
@@ -270,16 +276,27 @@ impl Inferior {
                     self.write_byte(rip - 1, 0xcc).unwrap();
                 }
             }
-        }
+        } else if let Some(ori_instr) = step_points.get(&(rip - 1)) {
+            println!("\x1b[31mstopped at a breakpoints\x1b[0m");// Delete TOOD
+            // restore the first byte of the instruction we replaced
+            self.write_byte(rip - 1, *ori_instr).unwrap();
+            // set %rip = %rip - 1 to rewind the instruction pointer
+            regs.rip = (rip - 1) as u64;
+            ptrace::setregs(self.pid(), regs).unwrap();
+            // go to the next instruction
+            ptrace::step(self.pid(), None).unwrap();
+        } // else { }
         println!("\x1b[32mLine: {:?} \n\x1b[30mAddr: {:?} \nSet Line_number: {}\x1b[0m", &line_object, dwarf_data.get_addr_for_line(None, line_object.number + 1), line_object.number + 1);
         let next_addr: Option<usize> = dwarf_data.get_addr_for_line(None, line_object.number + 1);
         // exist Bug TODO
         if let Some(addr_value) = next_addr {
             println!("\x1b[32mFind the addr: {:?}\x1b[0m", addr_value); // TODO Delete
-            // self.write_byte(addr_value, 0xcc).unwrap();
+            let ori_instr = self.write_byte(addr_value, 0xcc).unwrap();
+            step_points.insert(addr_value, ori_instr);
         } else { 
             println!("\x1b[32mCan't find the addr\x1b[0m"); // TODO Delete
         }
+
         // resume normal execution
         ptrace::cont(self.pid(), signal)?;
         // wait for inferior to stop due to SIGTRAP, just return if the inferior terminates here

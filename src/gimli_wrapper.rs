@@ -345,7 +345,6 @@ fn get_attr_value<R: Reader>(
                 Ok(DebugValue::Str(format!("<.debug_str+0x{:08x}>", offset.0)))
             }
         }
-
         gimli::AttributeValue::DebugLineStrRef(offset) => {
             if let Ok(s) = dwarf.debug_line_str.get_str(offset) {
                 Ok(DebugValue::Str(format!("{}", s.to_string_lossy()?)))
@@ -353,7 +352,6 @@ fn get_attr_value<R: Reader>(
                 Ok(DebugValue::Str(format!("<.debug_str+-2x{:08x}>", offset.0)))
             }
         }
-
         gimli::AttributeValue::Sdata(data) => Ok(DebugValue::Int(data)),
         gimli::AttributeValue::Addr(data) => Ok(DebugValue::Uint(data)),
         gimli::AttributeValue::Udata(data) => Ok(DebugValue::Uint(data)),

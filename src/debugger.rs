@@ -78,7 +78,7 @@ impl Debugger {
     fn get_next_command(&mut self) -> DebuggerCommand {
         loop {
             // Print prompt and get next line of user input
-            match self.readline.readline("(deet) ") {
+            match self.readline.readline("\x1b[35m(deet) \x1b[0m") {
                 Err(ReadlineError::Interrupted) => {
                     // User pressed ctrl+c. We're going to ignore it
                     println!("Type\"quit\"to exit");
@@ -97,9 +97,9 @@ impl Debugger {
                     self.readline.add_history_entry(line.as_str());
                     if let Err(err) = self.readline.save_history(&self.history_path) {
                         println!("Warning: failed to save history file at {}: {}", 
-                                 self.history_path,
-                                 err
-                         );
+                            self.history_path,
+                            err
+                        );
                     }
                     let tokens: Vec<&str> = line.split_whitespace().collect();
                     if let Some(cmd) = DebuggerCommand::from_tokens(&tokens) {
@@ -233,9 +233,9 @@ impl Debugger {
                 // and observe the state changes of the child process
                 DebuggerCommand::Step                  => {
                     if self.inferior.is_none() {
-                        println!("Erro: you can not use step when there is no process running");
+                        println!("Error: you can not use step when there is no process running");
                     } else {
-                        match self.inferior.as_mut().unwrap().single_step(&self.breakpoints).unwrap() {
+                        match self.inferior.as_mut().unwrap().step_over(&self.breakpoints, None, &self.debug_data).unwrap() {
                             Status::Exited(exit_code)    => {
                                 println!("Chlid exited (status {})", exit_code);
                                 self.inferior = None;

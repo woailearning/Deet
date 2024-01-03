@@ -163,7 +163,6 @@ impl DwarfData {
     /// # Returns
     /// 
     /// If the corresponding line is found, the memory address of that line is returned. Otherwise, `None` is returned.
-    #[allow(dead_code)]
     pub fn get_addr_for_line(&self, file: Option<&str>, line_number: usize) -> Option<usize> {
         let target_file = match file {
             Some(filename) => self.get_target_file(filename)?,
@@ -219,7 +218,6 @@ impl DwarfData {
     /// # Returns
     /// 
     /// If the corresponding source code line is found, the information of that line is returned. Otherwise, `None` is returned.
-    #[allow(dead_code)]
     pub fn get_line_from_addr(&self, curr_addr: usize) -> Option<Line> {
         let location = self
             .addr2line
@@ -284,7 +282,7 @@ impl DwarfData {
             println!("{}", file.name);
             println!("------");
 
-        println!("\x1b[34m| - - - - Global variables- - - - : |\x1b[0m");
+            println!("\x1b[34m| - - - - Global variables- - - - |\x1b[0m");
             for var in &file.global_variables {
                 println!(
                     "| Variable: {:<20} | Type: {:<8} | Location: {:<10} | Line: {:<5} |",
@@ -292,7 +290,7 @@ impl DwarfData {
                 );
             }
 
-            println!("\x1b[34m| - - - - Functions- - - - : |\x1b[0m");
+            println!("\x1b[34m|- - - - - Functions - - - - -| \x1b[0m");
             for func in &file.functions {
                 println!(
                     "| Function: {:<17} | Line: {:<8} | Address: {:<24x} | Length: {:<6} |",
@@ -306,10 +304,10 @@ impl DwarfData {
                 }
             }
 
-            println!("\x1b[34m| - - - - Line numbers- - - - : |\x1b[0m");
+            println!("\x1b[34m| - - - - Line numbers - - - - |\x1b[0m");
             for line in &file.lines {
                 println!(
-                    "| Line: {:<5} | Address: {:<5x} |",
+                    "| Line: {:<4} | Address: {:<5x} |",
                     line.number, line.address
                 );
             }

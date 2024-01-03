@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use crate::dwarf_data::DwarfData;
+use crate::dwarf_data::Line;
 
 /// # brief 
 /// Align the given address to the nearest word boundary, Pointer size depends on current platform.
@@ -151,7 +152,7 @@ impl Inferior {
     pub fn wait(&self, option: Option<WaitPidFlag>) -> Result<Status, nix::Error> {
         Ok(match waitpid(self.pid(), option)? {
             WaitStatus::Exited(_pid, exit_code) => Status::Exited(exit_code),
-            WaitStatus::Signaled(_pid, signal, core_dumped) => Status::Signaled(signal),
+            WaitStatus::Signaled(_pid, signal, _core_dumped) => Status::Signaled(signal),
             WaitStatus::Stopped(_pid, signal) => {
                 let regs = ptrace::getregs(self.pid())?;
                 Status::Stopped(signal, regs.rip as usize)
@@ -208,6 +209,7 @@ impl Inferior {
         let mut regs = ptrace::getregs(self.pid())?;
         let rip = regs.rip as usize;
         // check if inferior stopped at a breakpoint
+        println!("\x1b[33mbreakpoints: {:?} \n rip: {}\x1b[0m", breakpoints, rip); // Delete TOOD
         if let Some(ori_instr) = breakpoints.get(&(rip - 1)) {
             println!("stopped at a breakpoints");
             // restore the first byte of the instruction we replaced
@@ -216,6 +218,7 @@ impl Inferior {
             regs.rip = (rip - 1) as u64;
             ptrace::setregs(self.pid(), regs).unwrap();
             // go to the next instruction
+            println!("\x1b[31mExecute ptrace::step\x1b[0m"); // Delete TOOD
             ptrace::step(self.pid(), None).unwrap();
             // wait for inferior to stop due to SIGTRAP, just return if the inferior terminates here
 
@@ -227,7 +230,9 @@ impl Inferior {
                     self.write_byte(rip - 1, 0xcc).unwrap();
                 }
             }
+
         }
+        println!("\x1b[32mExecute ptrace::cont\x1b[0m"); // Delete TOOD
         // resume normal execution
         ptrace::cont(self.pid(), signal)?;
         // wait for inferior to stop or terminate
@@ -242,20 +247,41 @@ impl Inferior {
     /// # return
     /// A `Result` indicating the status of the operation or an error from the `nix` library.
     ///
-    pub fn single_step(&mut self, breakpoints: &HashMap<usize, u8>) -> Result<Status, nix::Error> {
+    pub fn step_over(&mut self, breakpoints: &HashMap<usize, u8>, signal: Option<signal::Signal>, dwarf_data: &DwarfData) -> Result<Status, nix::Error> {
         let mut regs = ptrace::getregs(self.pid())?;
         let rip = regs.rip as usize;
         // check if inferior stopped at a breakpoint
+        let line_object: Line = dwarf_data.get_line_from_addr(rip).unwrap();
+        println!("\x1b[36mbreakpoints: {:?} \nrip: {}\x1b[0m", breakpoints, rip); // Delete TOOD
         if let Some(ori_instr) = breakpoints.get(&(rip - 1)) {
-            println!("stopped at a breakpoints");
+            println!("\x1b[31mstopped at a breakpoints\x1b[0m");// Delete TOOD
             // restore the first byte of the instruction we replaced
             self.write_byte(rip - 1, *ori_instr).unwrap();
             // set %rip = %rip - 1 to rewind the instruction pointer
             regs.rip = (rip - 1) as u64;
             ptrace::setregs(self.pid(), regs).unwrap();
+            // go to the next instruction
+            ptrace::step(self.pid(), None).unwrap();
+            match self.wait(None).unwrap() {
+                Status::Exited(exit_code) => return Ok(Status::Exited(exit_code)),
+                Status::Signaled(signal) => return Ok(Status::Signaled(signal)),
+                Status::Stopped(_, _) => {
+                    // restore 0xcc in the breakpoint localtion
+                    self.write_byte(rip - 1, 0xcc).unwrap();
+                }
+            }
         }
-        // go to the next instruction
-        ptrace::step(self.pid(), None).unwrap();
+        println!("\x1b[32mLine: {:?} \n\x1b[30mAddr: {:?} \nSet Line_number: {}\x1b[0m", &line_object, dwarf_data.get_addr_for_line(None, line_object.number + 1), line_object.number + 1);
+        let next_addr: Option<usize> = dwarf_data.get_addr_for_line(None, line_object.number + 1);
+        // exist Bug TODO
+        if let Some(addr_value) = next_addr {
+            println!("\x1b[32mFind the addr: {:?}\x1b[0m", addr_value); // TODO Delete
+            // self.write_byte(addr_value, 0xcc).unwrap();
+        } else { 
+            println!("\x1b[32mCan't find the addr\x1b[0m"); // TODO Delete
+        }
+        // resume normal execution
+        ptrace::cont(self.pid(), signal)?;
         // wait for inferior to stop due to SIGTRAP, just return if the inferior terminates here
         self.wait(None)
     }

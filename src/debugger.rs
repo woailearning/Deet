@@ -182,7 +182,7 @@ impl Debugger {
                         // Crate the inferior
                         self.inferior = Some(inferior);
 
-                        match self.inferior.as_mut().unwrap().continue_run(None, &self.breakpoints).unwrap() {
+                        match self.inferior.as_mut().unwrap().continue_run(None, &self.breakpoints, &mut self.step_over_points).unwrap() {
                             Status::Exited(exit_code)    => {
                                 println!("Chlid exited (status {})", exit_code);
                                 self.inferior = None;
@@ -211,7 +211,7 @@ impl Debugger {
                     if self.inferior.is_none() {
                        println!("Error: you can not use continue when there is no process running!");
                     } else {
-                        match self.inferior.as_mut().unwrap().continue_run(None, &self.breakpoints).unwrap() {
+                        match self.inferior.as_mut().unwrap().continue_run(None, &self.breakpoints, &mut self.step_over_points).unwrap() {
                             Status::Exited(exit_code) => {
                                 self.inferior = None;
                                 println!("Child exit (status {})", exit_code);

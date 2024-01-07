@@ -205,9 +205,15 @@ impl Inferior {
     ///     }
     /// }
     /// ```
-    pub fn continue_run(&mut self, signal: Option<signal::Signal>, breakpoints: &HashMap<usize, u8>) -> Result<Status, nix::Error> {
+    pub fn continue_run(
+        &mut self, 
+        signal: Option<signal::Signal>, 
+        breakpoints: &HashMap<usize, u8>,
+        step_points: &mut HashMap<usize, u8>
+    ) -> Result<Status, nix::Error> {
         let mut regs = ptrace::getregs(self.pid())?;
         let rip = regs.rip as usize;
+
         // check if inferior stopped at a breakpoint
         println!("\x1b[33mbreakpoints: {:?} \n rip: {}\x1b[0m", breakpoints, rip); // Delete TOOD
         if let Some(ori_instr) = breakpoints.get(&(rip - 1)) {
@@ -231,6 +237,22 @@ impl Inferior {
                 }
             }
 
+        } else if let Some(ori_instr) = step_points.get(&(rip - 1)) {
+            println!("\x1b[32mstopped at a step_points\x1b[0m");// Delete TOOD
+            // restore the first byte of the instruction we replaced
+            self.write_byte(rip - 1, *ori_instr).unwrap();
+            // set %rip = %rip - 1 to rewind the instruction pointer
+            regs.rip = (rip - 1) as u64;
+            ptrace::setregs(self.pid(), regs).unwrap();
+            // go to the next instruction
+            ptrace::step(self.pid(), None).unwrap();
+            match self.wait(None).unwrap() {
+                Status::Exited(exit_code) => return Ok(Status::Exited(exit_code)),
+                Status::Signaled(signal) => return Ok(Status::Signaled(signal)),
+                Status::Stopped(_, _) => {
+                    step_points.remove(&(rip - 1));
+                }
+            }
         }
         println!("\x1b[32mExecute ptrace::cont\x1b[0m"); // Delete TOOD
         // resume normal execution
@@ -258,7 +280,6 @@ impl Inferior {
         let rip = regs.rip as usize;
         // check if inferior stopped at a breakpoint
         let line_object: Line = dwarf_data.get_line_from_addr(rip).unwrap();
-        println!("\x1b[36mbreakpoints: {:?} \nrip: {}\x1b[0m", breakpoints, rip); // Delete TOOD
         if let Some(ori_instr) = breakpoints.get(&(rip - 1)) {
             println!("\x1b[31mstopped at a breakpoints\x1b[0m");// Delete TOOD
             // restore the first byte of the instruction we replaced
@@ -277,7 +298,7 @@ impl Inferior {
                 }
             }
         } else if let Some(ori_instr) = step_points.get(&(rip - 1)) {
-            println!("\x1b[31mstopped at a breakpoints\x1b[0m");// Delete TOOD
+            println!("\x1b[32mstopped at a step_points\x1b[0m");// Delete TOOD
             // restore the first byte of the instruction we replaced
             self.write_byte(rip - 1, *ori_instr).unwrap();
             // set %rip = %rip - 1 to rewind the instruction pointer
@@ -285,17 +306,25 @@ impl Inferior {
             ptrace::setregs(self.pid(), regs).unwrap();
             // go to the next instruction
             ptrace::step(self.pid(), None).unwrap();
-        } // else { }
-        println!("\x1b[32mLine: {:?} \n\x1b[30mAddr: {:?} \nSet Line_number: {}\x1b[0m", &line_object, dwarf_data.get_addr_for_line(None, line_object.number + 1), line_object.number + 1);
-        let next_addr: Option<usize> = dwarf_data.get_addr_for_line(None, line_object.number + 1);
+            match self.wait(None).unwrap() {
+                Status::Exited(exit_code) => return Ok(Status::Exited(exit_code)),
+                Status::Signaled(signal) => return Ok(Status::Signaled(signal)),
+                Status::Stopped(_, _) => {
+                    step_points.remove(&(rip - 1));
+                }
+            }
+        } 
+        println!("\x1b[35mLine: {:?} \n\x1b[30mAddr: {:?} \nSet Line_number: {}\x1b[0m", &line_object, dwarf_data.get_addr_for_line(None, line_object.number + 1), line_object.number + 1);
+        let next_addr = dwarf_data.get_addr_for_line(None, line_object.number + 1).unwrap();
         // exist Bug TODO
-        if let Some(addr_value) = next_addr {
-            println!("\x1b[32mFind the addr: {:?}\x1b[0m", addr_value); // TODO Delete
-            let ori_instr = self.write_byte(addr_value, 0xcc).unwrap();
-            step_points.insert(addr_value, ori_instr);
-        } else { 
-            println!("\x1b[32mCan't find the addr\x1b[0m"); // TODO Delete
-        }
+        println!("\x1b[37mFind the addr: {:?}\x1b[0m", next_addr); // TODO Delete
+        let ori_instr = self.write_byte(next_addr, 0xcc).unwrap();
+        step_points.insert(next_addr, ori_instr);
+        println!("\x1b[36mbreakpoints: {:?} \nrip: {} \nstep_points: {:?}\x1b[0m", 
+            breakpoints, 
+            rip,
+            step_points,
+        ); // Delete TOOD
 
         // resume normal execution
         ptrace::cont(self.pid(), signal)?;
